@@ -22,3 +22,7 @@ Route.get('/', () => {
 
 Route.post('/users', 'UserController.create');
 Route.post('/sessions', 'SessionController.create');
+Route.resource('products', 'ProductController').apiOnly().middleware('auth');
+Route.resource('tenants' , 'TenantController').apiOnly().middleware('auth');
+Route.resource('contacts' , 'ContactController').apiOnly().middleware('auth');
+
