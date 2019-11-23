@@ -6,6 +6,9 @@
 
 
 const Product = use('App/Models/Product')
+const base64ToImage = require('base64-to-image');
+const Env = use('Env')
+
 /**
  * Resourceful controller for interacting with products
  */
@@ -24,15 +27,15 @@ class ProductController {
     const products = await Product.all()
     const count = await Product.getCount()
 
-    const params = request.only(["page" , "per_page"])
+    const params = request.only(["page", "per_page"])
 
     console.log(params);
-    
+
     const data = {
       items: products,
       page: params.page,
-      per_page : params.per_page,
-      total:count
+      per_page: params.per_page,
+      total: count
     }
 
     return data;
@@ -52,33 +55,30 @@ class ProductController {
    */
   async store({ request, response }) {
 
+
     const data = request.only([
       'name',
       'description',
       'short_description',
-      'ean_13'
+      'ean_13',
     ])
+    //let myurl = new URL(request.url)
+    let img64 = request.only(["image64"]);
+    img64 = img64.image64
 
-    const validationOptions = {
-      types: ['image'],
-      size: '5mb',
-      extnames: ['png', 'gif' , 'jpg']
+    //console.log(request.url() ,request.all(), request.hostname() , request.originalUrl() )// myurl.hostname);
+    let product = await Product.create(data)
+
+    if (img64) {
+
+      const base64Str = img64;
+      const path = 'public/uploads/products/';
+      const optionalObj = { 'fileName': `PROD_${product.id}`, 'type': 'png' };
+      const imageInfo = base64ToImage(base64Str, path, optionalObj);
+      product.image_url = `http://${request.hostname()}:${Env.get('APP_PORT','3333')}/uploads/products/${imageInfo.fileName}`;
+      console.log(product.image_url);
+      product.save();
     }
-
-    const profilePic = request.file('img' , validationOptions)
-
-    console.log('profile:pic' , profilePic,request.body);
-  
-    await profilePic.move(Helpers.tmpPath('uploads'), {
-      name: `${data.name}.jpg`,
-      overwrite: true
-    })
-  
-    if (!profilePic.moved()) {
-      return profilePic.error()
-    }
-
-    const product = await Product.create({ ...data, tenant_id:1 })
 
     return product
   }
